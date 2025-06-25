@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rubik's Cube Solver</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-color: #0a0a0a;
+      --accent: #39ff14;
+      --button-bg: #1e1e1e;
+      --console-bg: #000000;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      background-color: var(--bg-color);
+      color: var(--accent);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+      font-size: 1.5rem;
+      text-align: center;
+    }
+
+    .controls {
+      margin-bottom: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    button {
+      background-color: var(--button-bg);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 10px 16px;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: var(--accent);
+      color: #000;
+    }
+
+    pre {
+      background-color: var(--console-bg);
+      color: var(--accent);
+      padding: 15px;
+      width: 100%;
+      max-width: 600px;
+      height: 400px;
+      overflow-y: auto;
+      border-radius: 8px;
+      border: 1px solid var(--accent);
+    }
+
+    @media (max-width: 600px) {
+      pre {
+        height: 300px;
+        font-size: 0.85rem;
+      }
+
+      button {
+        flex: 1 1 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🧩 Rubik's Cube Solver</h2>
+  <div class="controls">
+    <button onclick="runScramble()">🔀 Scramble Cube</button>
+    <button onclick="runSolve()">✅ Solve Cube</button>
+  </div>
+
+  <pre id="consoleOutput"></pre>
+
+  <script>
+    const COLORS = {
+      U: 'w', D: 'y', F: 'g',
+      B: 'b', L: 'o', R: 'r'
+    };
+
+    class RubiksCube {
+      constructor() {
+        this.faces = {
+          U: Array(9).fill(COLORS.U),
+          D: Array(9).fill(COLORS.D),
+          F: Array(9).fill(COLORS.F),
+          B: Array(9).fill(COLORS.B),
+          L: Array(9).fill(COLORS.L),
+          R: Array(9).fill(COLORS.R),
+        };
+        this.scrambleSteps = [];
+        this.console = document.getElementById("consoleOutput");
+      }
+
+      log(text) {
+        this.console.textContent += text + "\n";
+        this.console.scrollTop = this.console.scrollHeight;
+      }
+
+      rotateFace(face, clockwise = true) {
+        const old = [...this.faces[face]];
+        const map = clockwise
+          ? [6, 3, 0, 7, 4, 1, 8, 5, 2]
+          : [2, 5, 8, 1, 4, 7, 0, 3, 6];
+        for (let i = 0; i < 9; i++) {
+          this.faces[face][i] = old[map[i]];
+        }
+      }
+
+      rotate(face, clockwise = true) {
+        this.rotateFace(face, clockwise);
+        const { U, D, F, B, L, R } = this.faces;
+
+        const rotateMap = {
+          F: () => {
+            const temp = clockwise ? [U[6], U[7], U[8]] : [R[0], R[3], R[6]];
+            if (clockwise) {
+              [U[6], U[7], U[8]] = [L[8], L[5], L[2]];
+              [L[2], L[5], L[8]] = [D[2], D[1], D[0]];
+              [D[0], D[1], D[2]] = [R[6], R[3], R[0]];
+              [R[0], R[3], R[6]] = temp;
+            } else {
+              [R[0], R[3], R[6]] = [D[0], D[1], D[2]];
+              [D[0], D[1], D[2]] = [L[2], L[5], L[8]];
+              [L[2], L[5], L[8]] = [U[6], U[7], U[8]];
+              [U[6], U[7], U[8]] = temp;
+            }
+          },
+          B: () => {
+            const temp = clockwise ? [U[0], U[1], U[2]] : [L[0], L[3], L[6]];
+            if (clockwise) {
+              [U[0], U[1], U[2]] = [R[2], R[5], R[8]];
+              [R[2], R[5], R[8]] = [D[8], D[7], D[6]];
+              [D[6], D[7], D[8]] = [L[6], L[3], L[0]];
+              [L[0], L[3], L[6]] = temp;
+            } else {
+              [L[0], L[3], L[6]] = [D[6], D[7], D[8]];
+              [D[6], D[7], D[8]] = [R[2], R[5], R[8]];
+              [R[2], R[5], R[8]] = [U[0], U[1], U[2]];
+              [U[0], U[1], U[2]] = temp;
+            }
+          },
+          U: () => {
+            const temp = clockwise ? [B[0], B[1], B[2]] : [L[0], L[1], L[2]];
+            if (clockwise) {
+              [B[0], B[1], B[2]] = [R[0], R[1], R[2]];
+              [R[0], R[1], R[2]] = [F[0], F[1], F[2]];
+              [F[0], F[1], F[2]] = [L[0], L[1], L[2]];
+              [L[0], L[1], L[2]] = temp;
+            } else {
+              [L[0], L[1], L[2]] = [F[0], F[1], F[2]];
+              [F[0], F[1], F[2]] = [R[0], R[1], R[2]];
+              [R[0], R[1], R[2]] = [B[0], B[1], B[2]];
+              [B[0], B[1], B[2]] = temp;
+            }
+          },
+          D: () => {
+            const temp = clockwise ? [B[6], B[7], B[8]] : [R[6], R[7], R[8]];
+            if (clockwise) {
+              [B[6], B[7], B[8]] = [L[6], L[7], L[8]];
+              [L[6], L[7], L[8]] = [F[6], F[7], F[8]];
+              [F[6], F[7], F[8]] = [R[6], R[7], R[8]];
+              [R[6], R[7], R[8]] = temp;
+            } else {
+              [R[6], R[7], R[8]] = [F[6], F[7], F[8]];
+              [F[6], F[7], F[8]] = [L[6], L[7], L[8]];
+              [L[6], L[7], L[8]] = [B[6], B[7], B[8]];
+              [B[6], B[7], B[8]] = temp;
+            }
+          },
+          L: () => {
+            const temp = clockwise ? [U[0], U[3], U[6]] : [F[0], F[3], F[6]];
+            if (clockwise) {
+              [U[0], U[3], U[6]] = [B[8], B[5], B[2]];
+              [B[2], B[5], B[8]] = [D[0], D[3], D[6]];
+              [D[0], D[3], D[6]] = [F[0], F[3], F[6]];
+              [F[0], F[3], F[6]] = temp;
+            } else {
+              [F[0], F[3], F[6]] = [D[0], D[3], D[6]];
+              [D[0], D[3], D[6]] = [B[2], B[5], B[8]];
+              [B[2], B[5], B[8]] = [U[0], U[3], U[6]];
+              [U[0], U[3], U[6]] = temp;
+            }
+          },
+          R: () => {
+            const temp = clockwise ? [U[2], U[5], U[8]] : [B[0], B[3], B[6]];
+            if (clockwise) {
+              [U[2], U[5], U[8]] = [F[2], F[5], F[8]];
+              [F[2], F[5], F[8]] = [D[2], D[5], D[8]];
+              [D[2], D[5], D[8]] = [B[6], B[3], B[0]];
+              [B[0], B[3], B[6]] = temp;
+            } else {
+              [B[0], B[3], B[6]] = [D[2], D[5], D[8]];
+              [D[2], D[5], D[8]] = [F[2], F[5], F[8]];
+              [F[2], F[5], F[8]] = [U[2], U[5], U[8]];
+              [U[2], U[5], U[8]] = temp;
+            }
+          }
+        };
+
+        rotateMap[face]();
+        this.scrambleSteps.push({ face, clockwise });
+      }
+
+      scramble(steps = 5) {
+        this.console.textContent = "";
+        this.scrambleSteps = [];
+        this.log("🌀 Scrambling...");
+        const faces = ["F", "B", "U", "D", "L", "R"];
+        for (let i = 0; i < steps; i++) {
+          const face = faces[Math.floor(Math.random() * faces.length)];
+          const clockwise = Math.random() > 0.5;
+          this.rotate(face, clockwise);
+        }
+        this.display("🔀 Scrambled Cube");
+      }
+
+      solve() {
+        this.log("\n🧠 Solving...");
+        for (let i = this.scrambleSteps.length - 1; i >= 0; i--) {
+          const move = this.scrambleSteps[i];
+          const notation = `${move.face}${move.clockwise ? "'" : ""}`;
+          this.rotate(move.face, !move.clockwise);
+          this.display("↩ Move: " + notation);
+        }
+        this.log("✅ Cube Solved!");
+      }
+
+      display(label = "") {
+        const state = Object.values(this.faces).flat().join('');
+        this.log(`${label}\nState: ${state}\n`);
+      }
+    }
+
+    const cube = new RubiksCube();
+    cube.display("🔲 Initial State");
+
+    function runScramble() {
+      cube.scramble(6);
+    }
+
+    function runSolve() {
+      cube.solve();
+    }
+  </script>
+</body>
+</html>
