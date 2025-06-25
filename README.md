@@ -14,7 +14,7 @@ Solve itself step-by-step and return to the original state.
 
 We focus on using object-oriented programming (OOP), arrays, and basic algorithms to simulate and reverse cube actions.
 
-🛠️ Step-by-Step Breakdown:
+Step-by-Step Breakdown:
 1. Representing the Cube (Using Object-Oriented Programming)
 We use a JavaScript class to define the structure of the cube.
 The Rubik’s Cube has 6 faces:
