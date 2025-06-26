@@ -1,4 +1,4 @@
-Rubik’s Cube Solver – Beginner-Level Explanation
+Rubik’s Cube Solver – Explanation
 
 
 Objective:
